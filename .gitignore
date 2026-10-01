@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Contexto local para Claude
+CLAUDE.md
+PROYECTO_CONTEXTO.md
+
+# BD
+*.sqlite

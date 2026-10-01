@@ -1,0 +1,88 @@
+Table entries [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	title varchar(255)
+	description text(65535)
+	phase varchar(255)
+	os varchar(255)
+	notes text(65535)
+}
+
+Table blocks [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	entry_id integer [ not null ]
+	position integer
+	title varchar(255)
+	description text(65535)
+}
+
+Table commands [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	block_id integer [ not null ]
+	position integer
+	command text(65535)
+	note text(65535)
+	example text(65535)
+}
+
+Table tags [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	tag varchar(255) [ not null, unique ]
+}
+
+Table entry_tag [headercolor: #175e7a] {
+	entry_id integer [ pk, not null ]
+	tag_id integer [ pk, not null ]
+}
+
+Table machines [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	machine varchar(255) [ not null ]
+	os varchar(255)
+}
+
+Table entry_machine [headercolor: #175e7a] {
+	entry_id integer [ pk, not null ]
+	machine_id integer [ pk, not null ]
+}
+
+Table tools [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	tool varchar(255)
+}
+
+Table entry_tool [headercolor: #175e7a] {
+	entry_id integer [ pk, not null ]
+	tool_id integer [ pk, not null ]
+}
+
+Ref fk_entries_id_blocks {
+	entries.id < blocks.entry_id [ delete: no action, update: no action ]
+}
+
+Ref fk_blocks_id_commands {
+	blocks.id < commands.block_id [ delete: no action, update: no action ]
+}
+
+Ref fk_entries_id_entry_tags {
+	entries.id < entry_tag.entry_id [ delete: no action, update: no action ]
+}
+
+Ref fk_tags_id_entry_tags {
+	tags.id < entry_tag.tag_id [ delete: no action, update: no action ]
+}
+
+Ref fk_entries_id_entry_machine {
+	entries.id < entry_machine.entry_id [ delete: no action, update: no action ]
+}
+
+Ref fk_machines_id_entry_machine {
+	machines.id < entry_machine.machine_id [ delete: no action, update: no action ]
+}
+
+Ref fk_entries_id_entry_tool {
+	entries.id < entry_tool.entry_id [ delete: no action, update: no action ]
+}
+
+Ref fk_tools_id_entry_tool {
+	tools.id < entry_tool.tool_id [ delete: no action, update: no action ]
+}
