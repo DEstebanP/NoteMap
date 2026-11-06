@@ -18,7 +18,7 @@ ENTRIES = [
     {
         "title": "Reconocimiento de directorios web",
         "description": "Fuzzing de rutas y directorios sobre un servicio HTTP.",
-        "phase": "Reconocimiento", "os": "multiplataforma",
+        "phase": "recon", "os": "multiplatform",
         "tags": ["gobuster", "nmap", "HTTP"],
         "machines": [],
         "blocks": [
@@ -41,7 +41,7 @@ ENTRIES = [
     {
         "title": "Reconocimiento de subdominios",
         "description": "Enumeracion de virtual hosts fuzzeando el header Host.",
-        "phase": "Reconocimiento", "os": "multiplataforma",
+        "phase": "recon", "os": "multiplatform",
         "tags": ["ffuf", "gobuster", "HTTP", "DNS", "vhost"],
         "machines": [],
         "blocks": [
@@ -60,7 +60,7 @@ ENTRIES = [
     {
         "title": "Descubrimiento de hosts y puertos",
         "description": "Barrido de hosts y puertos usando solo bash (/dev/tcp), sin nmap.",
-        "phase": "Reconocimiento", "os": "linux",
+        "phase": "recon", "os": "linux",
         "tags": ["bash", "recon"],
         "machines": [],
         "blocks": [
@@ -75,7 +75,7 @@ ENTRIES = [
     {
         "title": "Enumeracion de MongoDB con mongosh",
         "description": "Conexion y listado de bases y colecciones en MongoDB.",
-        "phase": "Enumeración", "os": "multiplataforma",
+        "phase": "enumeration", "os": "multiplatform",
         "tags": ["MongoDB"],
         "machines": ["Shoppy"],
         "blocks": [
@@ -93,7 +93,7 @@ ENTRIES = [
     {
         "title": "SMB - enumeracion de shares",
         "description": "Listado y acceso a recursos compartidos SMB con smbclient.",
-        "phase": "Enumeración", "os": "multiplataforma",
+        "phase": "enumeration", "os": "multiplatform",
         "tags": ["SMB", "smbclient"],
         "machines": [],
         "blocks": [
@@ -110,7 +110,7 @@ ENTRIES = [
     {
         "title": "netexec - auditoria de SMB/AD",
         "description": "Auditoria de SMB, pass-the-hash y volcado de credenciales de dominio.",
-        "phase": "Enumeración", "os": "windows",
+        "phase": "enumeration", "os": "windows",
         "tags": ["netexec", "SMB", "NTLM", "Active Directory", "impacket"],
         "machines": ["Tactics"],
         "blocks": [
@@ -131,7 +131,7 @@ ENTRIES = [
     {
         "title": "WordPress - enumeracion y rutas criticas",
         "description": "Enumeracion de usuarios, plugins y rutas sensibles en WordPress.",
-        "phase": "Explotación", "os": "multiplataforma",
+        "phase": "exploitation", "os": "multiplatform",
         "tags": ["wpscan", "gobuster", "HTTP", "WordPress"],
         "machines": [],
         "blocks": [
@@ -152,7 +152,7 @@ ENTRIES = [
     {
         "title": "LFI - Local File Inclusion",
         "description": "Inclusion de archivos locales a traves de parametros vulnerables.",
-        "phase": "Explotación", "os": "linux",
+        "phase": "exploitation", "os": "linux",
         "tags": ["ffuf", "HTTP", "LFI"],
         "machines": [],
         "blocks": [
@@ -170,7 +170,7 @@ ENTRIES = [
     {
         "title": "Log Poisoning (LFI a RCE)",
         "description": "Escalada de LFI a ejecucion de codigo envenenando logs. Plantilla.",
-        "phase": "Explotación", "os": "linux",
+        "phase": "exploitation", "os": "linux",
         "tags": ["LFI", "RCE", "HTTP"],
         "machines": [],
         "blocks": [
@@ -187,7 +187,7 @@ ENTRIES = [
     {
         "title": "NoSQL Injection (MongoDB)",
         "description": "Bypass de autenticacion en MongoDB. Plantilla.",
-        "phase": "Explotación", "os": "multiplataforma",
+        "phase": "exploitation", "os": "multiplatform",
         "tags": ["MongoDB", "NoSQL Injection", "HTTP"],
         "machines": ["Shoppy"],
         "blocks": [
@@ -200,7 +200,7 @@ ENTRIES = [
     {
         "title": "SQLi MySQL - enumeracion por UNION",
         "description": "Extraccion de datos mediante inyeccion SQL basada en UNION.",
-        "phase": "Explotación", "os": "multiplataforma",
+        "phase": "exploitation", "os": "multiplatform",
         "tags": ["MySQL", "SQL Injection", "HTTP"],
         "machines": [],
         "blocks": [
@@ -218,7 +218,7 @@ ENTRIES = [
     {
         "title": "Estabilizar una shell",
         "description": "Tratamiento de la TTY para obtener una shell interactiva.",
-        "phase": "Post-Explotación", "os": "linux",
+        "phase": "post_exploitation", "os": "linux",
         "tags": ["shell", "TTY"],
         "machines": [],
         "blocks": [
@@ -235,7 +235,7 @@ ENTRIES = [
     {
         "title": "Transferencia de archivos",
         "description": "Mover archivos entre la maquina atacante y la victima.",
-        "phase": "Post-Explotación", "os": "linux",
+        "phase": "post_exploitation", "os": "linux",
         "tags": ["netcat", "scp", "chisel"],
         "machines": [],
         "blocks": [
@@ -255,7 +255,7 @@ ENTRIES = [
     {
         "title": "Cracking de hashes y llaves",
         "description": "Recuperacion de contrasenas y passphrases con john y hashcat.",
-        "phase": "Post-Explotación", "os": "linux",
+        "phase": "post_exploitation", "os": "linux",
         "tags": ["john", "hashcat"],
         "machines": [],
         "blocks": [
@@ -272,7 +272,7 @@ ENTRIES = [
     {
         "title": "Privesc Linux - enumeracion local",
         "description": "Checklist manual: config, SUID, sudo, capabilities, cron.",
-        "phase": "Privesc", "os": "linux",
+        "phase": "privesc", "os": "linux",
         "tags": ["SUID", "sudo", "cron", "capabilities"],
         "machines": [],
         "blocks": [
@@ -293,7 +293,7 @@ ENTRIES = [
     {
         "title": "linPEAS - enumeracion automatizada",
         "description": "Enumeracion automatica de vectores de privesc en Linux.",
-        "phase": "Privesc", "os": "linux",
+        "phase": "privesc", "os": "linux",
         "tags": ["privesc", "enumeracion"],
         "machines": [],
         "blocks": [
@@ -307,7 +307,7 @@ ENTRIES = [
     {
         "title": "Docker Breakout via grupo docker",
         "description": "Escalada a root abusando de la pertenencia al grupo docker. Plantilla.",
-        "phase": "Privesc", "os": "linux",
+        "phase": "privesc", "os": "linux",
         "tags": ["Docker", "Docker Breakout"],
         "machines": ["Shoppy"],
         "blocks": [
@@ -324,7 +324,7 @@ ENTRIES = [
     {
         "title": "SSH Tunneling",
         "description": "Port forwarding local/remoto y proxy dinamico sobre SSH.",
-        "phase": "Pivoting", "os": "linux",
+        "phase": "pivoting", "os": "linux",
         "tags": ["proxychains", "SSH", "pivoting", "port-forwarding"],
         "machines": [],
         "blocks": [

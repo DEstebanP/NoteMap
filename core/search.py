@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from db.models import Entry, Block, Command, Tag, Machine
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 
 # search_entries
@@ -52,10 +52,18 @@ class EntryDetail:
     machines: list[MachineDetail]
 
 
-def search_entries(session, term: str) -> list[EntryResult]:
+def search_entries(session, terms: list[str]) -> list[EntryResult]:
+    if not terms:
+        return []
+    
+    conditions = [
+        Entry.title.contains(term) | Entry.description.contains(term)
+        for term in terms
+    ]
+    
     rows = session.execute(
         select(Entry.id, Entry.title, Entry.phase, Entry.os)
-        .where(Entry.title.contains(term) | Entry.description.contains(term))
+        .where(and_(*conditions))
     ).all()
     
     results = [

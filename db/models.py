@@ -1,5 +1,23 @@
-from sqlalchemy import Column, ForeignKey, Table, Text
+from sqlalchemy import Column, ForeignKey, Table, Text, Enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+PHASES = (
+    'recon',
+    'enumeration',
+    'exploitation',
+    'pivoting',
+    'post_exploitation',
+    'privesc',
+    'setup',
+    'other'
+)
+
+OS_TYPES = (
+    'linux',
+    'windows',
+    'multiplatform',
+    'other'
+)
 
 class Base(DeclarativeBase):
     pass
@@ -24,8 +42,8 @@ class Entry(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
     description: Mapped[str | None] = mapped_column(Text)
-    phase: Mapped[str]
-    os: Mapped[str | None]
+    phase: Mapped[str] = mapped_column(Enum(*PHASES, name="phase_enum", create_constraint=True))
+    os: Mapped[str | None] = mapped_column(Enum(*OS_TYPES, name="os_enum", create_constraint=True))
     notes: Mapped[str | None] = mapped_column(Text)
 
     blocks: Mapped[list["Block"]] = relationship(back_populates="entry", cascade="all, delete-orphan", order_by="Block.position")
@@ -69,6 +87,6 @@ class Machine(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(unique=True)
-    os: Mapped[str | None]
+    os: Mapped[str | None] = mapped_column(Enum(*OS_TYPES, name="os_enum", create_constraint=True))
 
     entries: Mapped[list["Entry"]] = relationship(secondary=entry_machine, back_populates="machines")
