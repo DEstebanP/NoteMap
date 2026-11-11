@@ -1,6 +1,6 @@
 from core.services import SearchService, PHASES, OS_TYPES, Filters
 import argparse, sys
-from cli.render import render_search_results
+from cli.render import render_search_results, render_entry_detail, render_entry_not_found
 
 class CustomHelpFormatter(argparse.RawTextHelpFormatter):
 
@@ -70,15 +70,23 @@ def parse_arguments():
         metavar="ID",
         help="Show detailed information for a specific entry by its ID."
     )
-    
+
+    parser.add_argument(
+        "-n", "--no-pager",
+        action="store_true",
+        help="With -s: print the entry straight to the terminal instead of\nopening it in a pager (lets you scroll and select long scripts)."
+    )
+
     args = parser.parse_args()
-    
     if args.search_term and args.show is not None:
         parser.error("Search and show cannot be used together.")
         
     if args.show is not None and (args.tag or args.phase or args.os or args.machine):
         parser.error("Show cannot be combined with other filters.")
-    
+
+    if args.no_pager and args.show is None:
+        parser.error("-n only works together with -s.")
+
     if len(sys.argv) == 1:
         parser.print_help()
         parser.exit()
@@ -88,7 +96,15 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     service = SearchService()
-    print(args.tag)
+
+    if args.show is not None:
+        detail = service.get(args.show)
+        if detail is None:
+            render_entry_not_found(args.show)
+            sys.exit(1)
+        render_entry_detail(detail, pager=not args.no_pager)
+        return
+
     filters = Filters(
         terms=args.search_term,
         tags=args.tag or [],
