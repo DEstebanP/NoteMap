@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from db.models import Entry, Block, Command, Tag, Machine
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
@@ -50,16 +50,33 @@ class EntryDetail:
     blocks: list[BlockDetail]
     tags: list[TagDetail]
     machines: list[MachineDetail]
-
-
-def search_entries(session, terms: list[str]) -> list[EntryResult]:
-    if not terms:
-        return []
     
-    conditions = [
-        Entry.title.contains(term) | Entry.description.contains(term)
-        for term in terms
-    ]
+@dataclass
+class Filters:
+    terms: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    os: str | None = None
+    machine: str | None = None
+    phase: str | None = None
+
+def search_entries(session, filters: Filters) -> list[EntryResult]:
+    
+    conditions = []
+    
+    for term in filters.terms:
+        conditions.append(Entry.title.contains(term, autoescape=True) | Entry.description.contains(term, autoescape=True))
+    
+    for tag in filters.tags:
+        conditions.append(Entry.tags.any(Tag.name.contains(tag, autoescape=True)))
+    
+    if filters.os is not None:
+        conditions.append(Entry.os == filters.os)
+        
+    if filters.machine is not None:
+        conditions.append(Entry.machines.any(Machine.name.contains(filters.machine, autoescape=True)))
+    
+    if filters.phase is not None:
+        conditions.append(Entry.phase == filters.phase)
     
     rows = session.execute(
         select(Entry.id, Entry.title, Entry.phase, Entry.os)

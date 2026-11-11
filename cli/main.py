@@ -1,5 +1,6 @@
-from core.services import SearchService, PHASES, OS_TYPES
+from core.services import SearchService, PHASES, OS_TYPES, Filters
 import argparse, sys
+from cli.render import render_search_results
 
 class CustomHelpFormatter(argparse.RawTextHelpFormatter):
 
@@ -34,25 +35,28 @@ def parse_arguments():
     parser.add_argument(
         "search_term",
         nargs="*",
+        type=str,
         help="The term or terms to search for."
     )
     
     parser.add_argument(
         "-t", "--tag",
         action="append",
-        help="Filter results by one or more tags."
+        help="Filter by tag (partial, case-insensitive). Repeat to require\nall of them: -t smb -t netexec."
     )
     
     parser.add_argument(
         "-p", "--phase",
         choices=PHASES,
-        help="Filter results by phase."
+        metavar="PHASE",
+        help="Filter results by phase: %(choices)s."
     )
     
     parser.add_argument(
         "-o", "--os",
         choices=OS_TYPES,
-        help="Filter results by operating system."
+        metavar="OS",
+        help="Filter results by operating system: %(choices)s."
     )
     
     parser.add_argument(
@@ -81,20 +85,19 @@ def parse_arguments():
     
     return args
 
-if __name__ == "__main__":
+def main():
     args = parse_arguments()
-    print(f"Search Term: {args.search_term}")
-    print(f"Tags: {args.tag}")
-    print(f"Phase: {args.phase}")
-    print(f"OS: {args.os}")
-    print(f"Show: {args.show}")
+    service = SearchService()
+    print(args.tag)
+    filters = Filters(
+        terms=args.search_term,
+        tags=args.tag or [],
+        os=args.os,
+        machine=args.machine,
+        phase=args.phase
+    )
+    results = service.search(filters)
+    render_search_results(results, filters)
 
-'''
-- Trabajar en la interfaz para cuando solo use el parametro de busqueda
-- 
-- Agregar la logica en core para los demas parametros de busqueda (tags, phase, os, etc..)
-    - Si no existe, puedes listar los que sí hay o sugerir el más parecido. Pista: la stdlib tiene difflib.get_close_matches.
--  es un flag tipo --list-tags / --list-machines para consultar qué hay
-- Hacer test de los diferentes escenarios de busqueda y combinaciones
-- Trabajar la interfaz para cuando se use el parametro de show
-'''
+if __name__ == "__main__":
+    main()
