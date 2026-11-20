@@ -1,8 +1,8 @@
 Table entries [headercolor: #175e7a] {
 	id integer [ pk, increment, not null ]
-	title varchar(255)
+	title varchar(255) [ not null ]
 	description text(65535)
-	phase varchar(255)
+	phase varchar(255) [ not null ]
 	os varchar(255)
 	notes text(65535)
 }
@@ -10,57 +10,74 @@ Table entries [headercolor: #175e7a] {
 Table blocks [headercolor: #175e7a] {
 	id integer [ pk, increment, not null ]
 	entry_id integer [ not null ]
-	position integer
-	title varchar(255)
-	description text(65535)
+	parent_id integer
+	position integer [ not null ]
+	title varchar(255) [ not null ]
+
+	indexes {
+		(entry_id, id) [unique]
+		(parent_id, position) [unique]
+	}
+	Note: 'Root positions are unique per entry where parent_id is NULL.'
 }
 
-Table commands [headercolor: #175e7a] {
+Enum item_kind {
+	text
+	command
+	image
+	note
+}
+
+Table items [headercolor: #175e7a] {
 	id integer [ pk, increment, not null ]
 	block_id integer [ not null ]
-	position integer
-	command text(65535)
-	note text(65535)
-	example text(65535)
+	position integer [ not null ]
+	kind item_kind [ not null ]
+	content text [ not null ]
+	language varchar(255)
+
+	indexes {
+		(block_id, position) [unique]
+	}
 }
 
 Table tags [headercolor: #175e7a] {
 	id integer [ pk, increment, not null ]
-	tag varchar(255) [ not null, unique ]
+	name varchar(255) [ not null, unique ]
 }
 
 Table entry_tag [headercolor: #175e7a] {
-	entry_id integer [ pk, not null ]
-	tag_id integer [ pk, not null ]
+	entry_id integer [ not null ]
+	tag_id integer [ not null ]
+	indexes {
+		(entry_id, tag_id) [pk]
+	}
 }
 
 Table machines [headercolor: #175e7a] {
 	id integer [ pk, increment, not null ]
-	machine varchar(255) [ not null ]
+	name varchar(255) [ not null, unique ]
 	os varchar(255)
 }
 
 Table entry_machine [headercolor: #175e7a] {
-	entry_id integer [ pk, not null ]
-	machine_id integer [ pk, not null ]
-}
-
-Table tools [headercolor: #175e7a] {
-	id integer [ pk, increment, not null ]
-	tool varchar(255)
-}
-
-Table entry_tool [headercolor: #175e7a] {
-	entry_id integer [ pk, not null ]
-	tool_id integer [ pk, not null ]
+	entry_id integer [ not null ]
+	machine_id integer [ not null ]
+	indexes {
+		(entry_id, machine_id) [pk]
+	}
 }
 
 Ref fk_entries_id_blocks {
-	entries.id < blocks.entry_id [ delete: no action, update: no action ]
+	entries.id < blocks.entry_id [ delete: cascade ]
 }
 
-Ref fk_blocks_id_commands {
-	blocks.id < commands.block_id [ delete: no action, update: no action ]
+Ref fk_blocks_parent {
+	blocks.(entry_id, id) < blocks.(entry_id, parent_id) [ delete: cascade ]
+}
+
+Ref fk_blocks_items {
+	blocks.id < items.block_id [ delete: cascade ]
 }
 
 Ref fk_entries_id_entry_tags {
@@ -77,12 +94,4 @@ Ref fk_entries_id_entry_machine {
 
 Ref fk_machines_id_entry_machine {
 	machines.id < entry_machine.machine_id [ delete: no action, update: no action ]
-}
-
-Ref fk_entries_id_entry_tool {
-	entries.id < entry_tool.entry_id [ delete: no action, update: no action ]
-}
-
-Ref fk_tools_id_entry_tool {
-	tools.id < entry_tool.tool_id [ delete: no action, update: no action ]
 }

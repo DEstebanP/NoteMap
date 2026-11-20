@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from db.models import Entry, Block, Command, Tag, Machine
-from sqlalchemy import select, and_
+from db.models import Entry, Block, Tag, Machine
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 # search_entries
@@ -13,20 +13,20 @@ class EntryResult:
 
 # search_entry_by_id
 @dataclass
-class CommandDetail:
+class ItemDetail:
     id: int
-    position: int | None
-    command: str
-    note: str | None
-    example: str | None
+    position: int
+    kind: str
+    content: str
+    language: str | None
 
 @dataclass
 class BlockDetail:
     id: int
-    position: int | None
-    title: str | None
-    description: str | None
-    commands: list[CommandDetail]
+    position: int
+    title: str
+    items: list[ItemDetail]
+    children: list["BlockDetail"] = field(default_factory=list)
 
 @dataclass
 class TagDetail:
@@ -80,7 +80,7 @@ def search_entries(session, filters: Filters) -> list[EntryResult]:
     
     rows = session.execute(
         select(Entry.id, Entry.title, Entry.phase, Entry.os)
-        .where(and_(*conditions))
+        .where(*conditions)
     ).all()
     
     results = [
@@ -89,12 +89,43 @@ def search_entries(session, filters: Filters) -> list[EntryResult]:
     ]
     return results
 
+def _build_block_tree(blocks: list[Block]) -> list[BlockDetail]:
+    # Entry.blocks and Block.items are already ordered by position by the ORM.
+    details = {
+        block.id: BlockDetail(
+            id=block.id,
+            position=block.position,
+            title=block.title,
+            items=[
+                ItemDetail(
+                    id=item.id,
+                    position=item.position,
+                    kind=item.kind,
+                    content=item.content,
+                    language=item.language,
+                )
+                for item in block.items
+            ],
+        )
+        for block in blocks
+    }
+
+    roots = []
+    for block in blocks:
+        detail = details[block.id]
+        if block.parent_id is None:
+            roots.append(detail)
+        else:
+            details[block.parent_id].children.append(detail)
+    return roots
+
+
 def search_entry_by_id(session, id: int) -> EntryDetail | None:
     entry = session.scalars(
         select(Entry)
         .where(Entry.id == id)
         .options(
-            selectinload(Entry.blocks).selectinload(Block.commands),
+            selectinload(Entry.blocks).selectinload(Block.items),
             selectinload(Entry.tags),
             selectinload(Entry.machines)
         )
@@ -103,44 +134,17 @@ def search_entry_by_id(session, id: int) -> EntryDetail | None:
     if entry is None:
         return None
 
-    result = EntryDetail(
-                id=entry.id, 
-                title=entry.title,
-                description=entry.description, 
-                phase=entry.phase, 
-                os=entry.os,
-                notes=entry.notes,
-                blocks=[
-                    BlockDetail(
-                        id=block.id,
-                        position=block.position,
-                        title=block.title,
-                        description=block.description,
-                        commands=[
-                            CommandDetail(
-                                id=command.id,
-                                position=command.position,
-                                command=command.command,
-                                note=command.note,
-                                example=command.example
-                            )
-                            for command in block.commands
-                        ]
-                    )
-                    for block in entry.blocks],
-                tags=[
-                    TagDetail(
-                        id=tag.id,
-                        name=tag.name
-                    )
-                    for tag in entry.tags],
-                machines=[
-                    MachineDetail(
-                        id=machine.id,
-                        name=machine.name,
-                        os=machine.os
-                    )
-                    for machine in entry.machines]
-            )
-    
-    return result
+    return EntryDetail(
+        id=entry.id,
+        title=entry.title,
+        description=entry.description,
+        phase=entry.phase,
+        os=entry.os,
+        notes=entry.notes,
+        blocks=_build_block_tree(entry.blocks),
+        tags=[TagDetail(id=tag.id, name=tag.name) for tag in entry.tags],
+        machines=[
+            MachineDetail(id=machine.id, name=machine.name, os=machine.os)
+            for machine in entry.machines
+        ],
+    )

@@ -1,8 +1,8 @@
 import os
-import re
 
 from rich.align import Align
 from rich.console import Console, Group
+from rich.markdown import Markdown
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.rule import Rule
@@ -132,18 +132,16 @@ _CODE_THEME = ANSISyntaxTheme({
     Name.Builtin: Style(),                    # echo, cd... as plain text
 })
 
-_command_hl = Syntax("", "bash", theme=_CODE_THEME, background_color=CODE_BG)
-_example_hl = Syntax("", "bash", theme=_CODE_THEME, background_color="default")
-
 # Tool = first word of each line / after a pipe; flags = -x, --script
 _TOOL_RE = r"(?m)(?:^|(?<=\|\s))[\w.\-]+"
 _FLAG_RE = r"(?<!\S)--?[A-Za-z][\w-]*"
 
 
-def _code(code: str, band: bool) -> Text:
-    text = (_command_hl if band else _example_hl).highlight(code)
+def _code_block(code: str, language: str | None) -> Padding:
+    lexer = language or "text"
+    text = Syntax("", lexer, theme=_CODE_THEME, background_color=CODE_BG).highlight(code)
     text.rstrip()
-    if band:
+    if lexer.lower() in {"bash", "sh", "shell", "zsh"}:
         text.highlight_regex(_TOOL_RE, style="code.tool")
         text.highlight_regex(_FLAG_RE, style="code.flag")
     if PLACEHOLDER_PATTERN:
@@ -151,14 +149,10 @@ def _code(code: str, band: bool) -> Text:
     # Syntax.highlight() returns no_wrap=True: without this, long lines get cut
     text.no_wrap = False
     text.overflow = "fold"  # long paths/tokens break instead of being cut
-    return text
-
-
-def _code_block(code: str) -> Padding:
     # Padding with a background style fills the whole rectangle, blank
     # lines included. Multi-line scripts get vertical breathing room.
     v_pad = 1 if "\n" in code.strip() else 0
-    return Padding(_code(code, band=True), (v_pad, 2), style=f"on {CODE_BG}", expand=True)
+    return Padding(text, (v_pad, 2), style=f"on {CODE_BG}", expand=True)
 
 
 def _emit(out: Console, renderable, indent: int = 0):
@@ -177,21 +171,35 @@ def _meta_line(detail) -> Text:
     return Text("  ·  ", style="muted").join(parts)
 
 
-def _ordered(items):
-    # position may be NULL: those go last, keeping their original order
-    return sorted(items, key=lambda i: (i.position is None, i.position or 0))
-
-
-def _numbered(items) -> bool:
-    # A level shows numbers only if the author gave it an order
-    return any(i.position is not None for i in items)
-
-
 def _heading(text: str, number: str | None) -> Group:
     # Terminals can't change font size: an "h2" is bold text + an underline
     # as long as the heading itself (like a setext Markdown heading).
     label = Text.assemble((f"{number}  ", "block") if number else "", (text, "block"))
     return Group(label, Text("─" * label.cell_len, style="rule"))
+
+
+def _print_blocks(out: Console, blocks, prefix: str = "", indent: int = 0):
+    for index, block in enumerate(blocks, start=1):
+        number = f"{prefix}.{index}" if prefix else str(index)
+        out.print()
+        _emit(out, _heading(block.title, number), indent)
+        # Leave room for the content on narrow terminals and at deeper levels.
+        content_indent = min(indent + INDENT, out.width // 4)
+        for item in block.items:
+            out.print()
+            if item.kind == "command":
+                body = _code_block(item.content, item.language)
+            elif item.kind == "note":
+                body = Table.grid(padding=(0, 1))
+                body.add_column(no_wrap=True)
+                body.add_column(ratio=1)
+                body.add_row(Text("✎ Note:", style="note.label"), Markdown(item.content))
+            elif item.kind == "image":
+                body = Text.assemble(("Image: ", "label"), item.content)
+            else:
+                body = Markdown(item.content)
+            _emit(out, body, content_indent)
+        _print_blocks(out, block.children, number, content_indent)
 
 
 def _print_detail(out: Console, detail):
@@ -208,29 +216,7 @@ def _print_detail(out: Console, detail):
     if detail.description:
         _emit(out, Text(detail.description))
 
-    # Blocks → commands
-    blocks = _ordered(detail.blocks)
-    number_blocks = _numbered(blocks)
-    for b_idx, block in enumerate(blocks, start=1):
-        out.print()
-        b_num = str(b_idx) if number_blocks else None
-        _emit(out, _heading(block.title or f"Block {b_idx}", b_num))
-        if block.description:
-            _emit(out, Text(block.description, style="desc"))
-
-        for cmd in _ordered(block.commands):
-            out.print()
-            _emit(out, _code_block(cmd.command), INDENT)
-            if cmd.example:
-                _emit(out, Text("↳ example", style="label"), INDENT)
-                _emit(out, _code_block(cmd.example), INDENT)
-            if cmd.note:
-                # Hanging indent: wrapped lines align with the text, not the label
-                note = Table.grid(padding=(0, 1))
-                note.add_column(no_wrap=True)
-                note.add_column(ratio=1)
-                note.add_row(Text("✎ Note:", style="note.label"), Text(cmd.note, style="desc"))
-                _emit(out, note, INDENT)
+    _print_blocks(out, detail.blocks)
 
     if detail.notes:
         out.print()
